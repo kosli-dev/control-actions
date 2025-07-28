@@ -257,7 +257,7 @@ def report_code_review_attestation(
 def main():
     parser = argparse.ArgumentParser(description="Evaluate code review attestations")
     parser.add_argument(
-        "--kosli-host-name", default="https://api.kosli.com", help="API host URL"
+        "--kosli-host-name", default="https://app.kosli.com", help="API host URL"
     )
     parser.add_argument("--kosli-org", required=True, help="Organization name")
     parser.add_argument(

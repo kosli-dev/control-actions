@@ -29,7 +29,7 @@ inputs:
   kosli_host_name:
     description: "The Kosli host name"
     required: false
-    default: "https://api.kosli.com"
+    default: "https://app.kosli.com"
 
 runs:
   using: "composite"
