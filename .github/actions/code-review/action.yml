@@ -42,11 +42,11 @@ runs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f ${{ github.action_path }}/requirements.txt ]; then pip install -r ${{ github.action_path }}/requirements.txt; fi
       shell: bash
 
     - name: Run script
-      run: python main.py \
+      run: python ${{ github.action_path }}/main.py \
         --base-ref "${{ inputs.base_ref }}" \
         --release-ref "${{ inputs.release_ref }}" \
         --kosli-api-token "${{ inputs.kosli_api_token }}" \
