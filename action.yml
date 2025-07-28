@@ -1,0 +1,59 @@
+name: "Code Review"
+description: "Evaluate code review control for a release"
+inputs:
+  base_ref:
+    description: "The base git ref (e.g. tag) for current running software"
+    required: true
+  release_ref:
+    description: "The git ref that is being released (default: HEAD)"
+    required: true
+    default: "HEAD"
+  kosli_api_token:
+    description: "The Kosli API token for authorization"
+    required: true
+  kosli_org:
+    description: "The Kosli organization"
+    required: true
+  kosli_search_flow_name:
+    description: "The Kosli flow where the source attestations are stored"
+    required: true
+  kosli_code_review_attestation_type:
+    description: "The Kosli attestation type to for reporting the code review attestations"
+    required: true
+  kosli_code_review_flow_name:
+    description: "The Kosli flow name to report the code review attestation to"
+    required: true
+  kosli_code_review_trail_name:
+    description: "The Kosli trail name to report the code review attestation to"
+    required: true
+  kosli_host_name:
+    description: "The Kosli host name"
+    required: false
+    default: "https://api.kosli.com"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      shell: bash
+
+    - name: Run script
+      run: python main.py \
+        --base-ref "${{ inputs.base_ref }}" \
+        --release-ref "${{ inputs.release_ref }}" \
+        --kosli-api-token "${{ inputs.kosli_api_token }}" \
+        --kosli-org "${{ inputs.kosli_org }}" \
+        --kosli-search-flow-name "${{ inputs.kosli_search_flow_name }}" \
+        --kosli-code-review-attestation-type "${{ inputs.kosli_code_review_attestation_type }}" \
+        --kosli-code-review-flow-name "${{ inputs.kosli_code_review_flow_name }}" \
+        --kosli-code-review-trail-name "${{ inputs.kosli_code_review_trail_name }}" \
+        --kosli-host-name "${{ inputs.kosli_host_name }}"
+      shell: bash
