@@ -193,11 +193,12 @@ def evaluate_all(data):
     return results
 
 
-def report_code_review_attestations(
+def report_code_review_attestation(
     host: str,
     org: str,
     flow_name: str,
     trail_name: str,
+    attestation_type: str,
     api_token: str,
     custom_attestation_data: List[dict],
     evidence_file: str,
@@ -225,7 +226,12 @@ def report_code_review_attestations(
     files = {
         "data_json": (
             None,
-            json.dumps({"attestation_data": custom_attestation_data}),
+            json.dumps(
+                {
+                    "type_name": attestation_type,
+                    "attestation_data": custom_attestation_data,
+                }
+            ),
             "application/json",
         ),
         "attachment_file": (
@@ -282,6 +288,10 @@ def main():
         default="evaluation_results.json",
         help="Output JSON file (default: evaluation_results.json)",
     )
+    parser.add_argument(
+        "--kosli-code-review-attestation-type",
+        help="Custom attestation type to report",
+    )
 
     args = parser.parse_args()
 
@@ -312,11 +322,12 @@ def main():
 
     # Report the code review attestations
     try:
-        response = report_code_review_attestations(
+        response = report_code_review_attestation(
             args.kosli_host_name,
             args.kosli_org,
             args.kosli_code_review_flow_name,
             args.kosli_code_review_trail_name,
+            args.kosli_code_review_attestation_type,
             args.kosli_api_token,
             output,
             "attestations_evidence.json",
