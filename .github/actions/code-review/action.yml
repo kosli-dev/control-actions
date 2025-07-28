@@ -46,14 +46,14 @@ runs:
       shell: bash
 
     - name: Run script
-      run: python ${{ github.action_path }}/main.py \
-        --base-ref "${{ inputs.base_ref }}" \
-        --release-ref "${{ inputs.release_ref }}" \
-        --kosli-api-token "${{ inputs.kosli_api_token }}" \
-        --kosli-org "${{ inputs.kosli_org }}" \
-        --kosli-search-flow-name "${{ inputs.kosli_search_flow_name }}" \
-        --kosli-code-review-attestation-type "${{ inputs.kosli_code_review_attestation_type }}" \
-        --kosli-code-review-flow-name "${{ inputs.kosli_code_review_flow_name }}" \
-        --kosli-code-review-trail-name "${{ inputs.kosli_code_review_trail_name }}" \
+      run: python ${{ github.action_path }}/main.py
+        --base-ref "${{ inputs.base_ref }}"
+        --release-ref "${{ inputs.release_ref }}"
+        --kosli-api-token "${{ inputs.kosli_api_token }}"
+        --kosli-org "${{ inputs.kosli_org }}"
+        --kosli-search-flow-name "${{ inputs.kosli_search_flow_name }}"
+        --kosli-code-review-attestation-type "${{ inputs.kosli_code_review_attestation_type }}"
+        --kosli-code-review-flow-name "${{ inputs.kosli_code_review_flow_name }}"
+        --kosli-code-review-trail-name "${{ inputs.kosli_code_review_trail_name }}"
         --kosli-host-name "${{ inputs.kosli_host_name }}"
       shell: bash
