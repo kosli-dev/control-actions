@@ -199,6 +199,7 @@ def report_code_review_attestation(
     flow_name: str,
     trail_name: str,
     attestation_type: str,
+    attestation_name: str,
     api_token: str,
     custom_attestation_data: List[dict],
     evidence_file: str,
@@ -229,6 +230,7 @@ def report_code_review_attestation(
             json.dumps(
                 {
                     "type_name": attestation_type,
+                    "attestation_name": attestation_name,
                     "attestation_data": custom_attestation_data,
                 }
             ),
@@ -294,6 +296,11 @@ def main():
         help="Custom attestation type to report",
     )
 
+    parser.add_argument(
+        "--kosli-code-review-attestation-name",
+        help="Custom attestation name to report",
+    )
+
     args = parser.parse_args()
 
     # Get the commit list
@@ -329,6 +336,7 @@ def main():
             args.kosli_code_review_flow_name,
             args.kosli_code_review_trail_name,
             args.kosli_code_review_attestation_type,
+            args.kosli_code_review_attestation_name,
             args.kosli_api_token,
             output,
             "attestations_evidence.json",
