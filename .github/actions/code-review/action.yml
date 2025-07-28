@@ -20,6 +20,9 @@ inputs:
   kosli_code_review_attestation_type:
     description: "The Kosli attestation type to for reporting the code review attestations"
     required: true
+  kosli_code_review_attestation_name:
+    description: "The Kosli attestation name to for reporting the code review attestations"
+    required: true
   kosli_code_review_flow_name:
     description: "The Kosli flow name to report the code review attestation to"
     required: true
@@ -53,6 +56,7 @@ runs:
         --kosli-org "${{ inputs.kosli_org }}"
         --kosli-search-flow-name "${{ inputs.kosli_search_flow_name }}"
         --kosli-code-review-attestation-type "${{ inputs.kosli_code_review_attestation_type }}"
+        --kosli-code-review-attestation-name "${{ inputs.kosli_code_review_attestation_name }}"
         --kosli-code-review-flow-name "${{ inputs.kosli_code_review_flow_name }}"
         --kosli-code-review-trail-name "${{ inputs.kosli_code_review_trail_name }}"
         --kosli-host-name "${{ inputs.kosli_host_name }}"
