@@ -26,5 +26,7 @@ runs:
     - name: Create Kosli Custom Attestation Type
       shell: bash
       run: kosli create attestation-type code-review
+        --org ${{ inputs.kosli_org }}
+        --api-token ${{ inputs.kosli_api_token }}
         --schema code-review-custom-type-schema.json
         --jq "all(.[]; .pass == true)"
