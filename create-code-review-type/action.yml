@@ -7,6 +7,9 @@ inputs:
   kosli_org:
     description: "The Kosli organization"
     required: true
+  kosli_cli_version:
+    description: "Kosli CLI version"
+    required: true
   kosli_host_name:
     description: "The Kosli host name"
     required: false
@@ -18,7 +21,7 @@ runs:
     - name: Setup Kosli cli
       uses: kosli-dev/setup-cli-action@v2
       with:
-        version: ${{ vars.KOSLI_CLI_VERSION }}
+        version: ${{ inputs.kosli_cli_version }}
 
     - name: Create Kosli Custom Attestation Type
       shell: bash
