@@ -20,16 +20,16 @@ def get_commit_list(base_ref: str, release_ref: str) -> List[str]:
     """
     try:
         # Check if we are on a detached HEAD
-        result = subprocess.run(
-            ["git", "symbolic-ref", "--quiet", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        # result = subprocess.run(
+        #     ["git", "symbolic-ref", "--quiet", "HEAD"],
+        #     capture_output=True,
+        #     text=True,
+        #     check=False,
+        # )
 
-        if result.returncode != 0:
-            print("Error: Currently on a detached HEAD", file=sys.stderr)
-            sys.exit(1)
+        # if result.returncode != 0:
+        #     print("Error: Currently on a detached HEAD", file=sys.stderr)
+        #     sys.exit(1)
 
         # Check if the base ref exists
         result = subprocess.run(
