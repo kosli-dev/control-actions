@@ -5,9 +5,8 @@ inputs:
     description: "The base git ref (e.g. tag) for current running software"
     required: true
   release_ref:
-    description: "The git ref that is being released (default: HEAD)"
+    description: "The git ref that is being released"
     required: true
-    default: "HEAD"
   kosli_api_token:
     description: "The Kosli API token for authorization"
     required: true
