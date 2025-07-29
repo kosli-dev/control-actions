@@ -1,0 +1,27 @@
+name: "Create Code Review Attestation Type"
+description: "Create Code Review Attestation Type for organization"
+inputs:
+  kosli_api_token:
+    description: "The Kosli API token for authorization"
+    required: true
+  kosli_org:
+    description: "The Kosli organization"
+    required: true
+  kosli_host_name:
+    description: "The Kosli host name"
+    required: false
+    default: "https://app.kosli.com"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Kosli cli
+      uses: kosli-dev/setup-cli-action@v2
+      with:
+        version: ${{ vars.KOSLI_CLI_VERSION }}
+
+    - name: Create Kosli Custom Attestation Type
+      shell: bash
+      run: kosli create attestation-type code-review
+        --schema code-review-custom-type-schema.json
+        --jq "all(.[]; .pass == true)"
