@@ -19,18 +19,6 @@ def get_commit_list(base_ref: str, release_ref: str) -> List[str]:
         List of commit SHAs
     """
     try:
-        # Check if we are on a detached HEAD
-        # result = subprocess.run(
-        #     ["git", "symbolic-ref", "--quiet", "HEAD"],
-        #     capture_output=True,
-        #     text=True,
-        #     check=False,
-        # )
-
-        # if result.returncode != 0:
-        #     print("Error: Currently on a detached HEAD", file=sys.stderr)
-        #     sys.exit(1)
-
         # Check if the base ref exists
         result = subprocess.run(
             ["git", "rev-parse", "--verify", base_ref],
@@ -122,6 +110,24 @@ def evaluate_attestation(commit_hash, attestation):
     pr_url = pull_requests[0].get("url", "") if pull_requests else ""
     if pr_url:
         result["pr_url"] = pr_url
+        result["pr_number"] = pr_url.split('/')[-1]
+        result["review_status"] = pull_requests[0].get("state", "")
+        result["pr_approvers"] = [approver["username"] for approver in pull_requests[0].get("approvers", [])]
+        result["review_type"] = "Pull request"
+
+    git_commit_info = attestation.get("git_commit_info", "")
+    if git_commit_info and git_commit_info["sha1"] == commit_hash:
+        result["commit_author"] = git_commit_info.get("author", "")
+        result["commit_message"] = git_commit_info.get("message", "")
+        result["commit_timestamp"] = git_commit_info.get("timestamp", "")
+    elif pr_url:
+        for commit in pull_requests[0].get("commits", []):
+            if commit.get("sha1") == commit_hash:
+                result["commit_author"] = commit.get("author", "")
+                result["commit_message"] = commit.get("message", "")
+                result["commit_timestamp"] = commit.get("timestamp", "")
+                break  # stop after finding the match
+
 
     att_type = attestation.get("attestation_type")
     is_compliant = attestation.get("is_compliant", False)
