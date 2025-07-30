@@ -110,7 +110,7 @@ def evaluate_attestation(commit_hash, attestation):
     pr_url = pull_requests[0].get("url", "") if pull_requests else ""
     if pr_url:
         result["pr_url"] = pr_url
-        result["pr_number"] = pr_url.split('/')[-1]
+        result["pr_number"] = int(pr_url.split('/')[-1])
         result["review_status"] = pull_requests[0].get("state", "")
         result["pr_approvers"] = [approver["username"] for approver in pull_requests[0].get("approvers", [])]
         result["review_type"] = "Pull request"
