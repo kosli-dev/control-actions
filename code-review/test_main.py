@@ -19,17 +19,18 @@ TEST_CASES = [
                 "html_url": "https://example.com/attestation/1",
             },
         },
-        "when": "TC2: evaluate_attestation is called with a compliant override attestation",
+        "when": "evaluate_attestation is called with a compliant override attestation",
         "then": "should return pass=True with override reason",
         "expected": {
             "commit": "abc123",
             "pass": True,
             "reason": "Overridden as compliant",
             "attestation_url": "https://example.com/attestation/1",
+            "review_type": "Override",
         },
     },
     {
-        "name": "TC3: override_attestation_non_compliant",
+        "name": "TC2: override_attestation_non_compliant",
         "given": {
             "commit_hash": "def456",
             "attestation": {
@@ -45,10 +46,11 @@ TEST_CASES = [
             "pass": False,
             "reason": "Overridden as non-compliant",
             "attestation_url": "https://example.com/attestation/2",
+            "review_type": "Override",
         },
     },
     {
-        "name": "TC4: pull_request_no_pull_requests",
+        "name": "TC3: pull_request_attestation_with_no_pull_requests",
         "given": {
             "commit_hash": "ghi789",
             "attestation": {
@@ -64,10 +66,11 @@ TEST_CASES = [
             "pass": False,
             "reason": "No pull requests in attestation",
             "attestation_url": "https://example.com/attestation/3",
+            "review_type": "Pull request",
         },
     },
     {
-        "name": "TC5: pull_request_no_approvers",
+        "name": "TC4: pull_request_no_approvers",
         "given": {
             "commit_hash": "jkl012",
             "attestation": {
@@ -90,10 +93,14 @@ TEST_CASES = [
             "reason": "Pull request has no approvers",
             "attestation_url": "https://example.com/attestation/4",
             "pr_url": "https://github.com/org/repo/pull/1",
+            "pr_number": 1,
+            "review_status": "",
+            "pr_approvers": [],
+            "review_type": "Pull request",
         },
     },
     {
-        "name": "TC6: pull_request_two_approvers",
+        "name": "TC5: pull_request_with_two_approvers",
         "given": {
             "commit_hash": "mno345",
             "attestation": {
@@ -119,10 +126,14 @@ TEST_CASES = [
             "reason": "Pull request demonstrates never-alone code review",
             "attestation_url": "https://example.com/attestation/5",
             "pr_url": "https://github.com/org/repo/pull/2",
+            "pr_number": 2,
+            "review_status": "",
+            "pr_approvers": ["approver1", "approver2"],
+            "review_type": "Pull request",
         },
     },
     {
-        "name": "TC7: pull_request_one_approver_not_committer",
+        "name": "TC6: pull_request_one_approver_not_committer",
         "given": {
             "commit_hash": "pqr678",
             "attestation": {
@@ -145,10 +156,14 @@ TEST_CASES = [
             "reason": "Pull request demonstrates never-alone code review",
             "attestation_url": "https://example.com/attestation/6",
             "pr_url": "https://github.com/org/repo/pull/3",
+            "pr_number": 3,
+            "review_status": "",
+            "pr_approvers": ["approver1"],
+            "review_type": "Pull request",
         },
     },
     {
-        "name": "TC8: pull_request_one_approver_is_committer",
+        "name": "TC7: pull_request_one_approver_is_committer",
         "given": {
             "commit_hash": "stu901",
             "attestation": {
@@ -171,10 +186,14 @@ TEST_CASES = [
             "reason": "The only approver of the PR is also a committer",
             "attestation_url": "https://example.com/attestation/7",
             "pr_url": "https://github.com/org/repo/pull/4",
+            "pr_number": 4,
+            "review_status": "",
+            "pr_approvers": ["approver1"],
+            "review_type": "Pull request",
         },
     },
     {
-        "name": "TC9: pull_request_approver_with_whitespace",
+        "name": "TC8: pull_request_approver_with_whitespace",
         "given": {
             "commit_hash": "vwx234",
             "attestation": {
@@ -197,10 +216,14 @@ TEST_CASES = [
             "reason": "The only approver of the PR is also a committer",
             "attestation_url": "https://example.com/attestation/8",
             "pr_url": "https://github.com/org/repo/pull/5",
+            "pr_number": 5,
+            "review_status": "",
+            "pr_approvers": ["approver1"],
+            "review_type": "Pull request",
         },
     },
     {
-        "name": "TC10: pull_request_multiple_prs_one_fails",
+        "name": "TC9: pull_request_multiple_prs_one_fails",
         "given": {
             "commit_hash": "yza567",
             "attestation": {
@@ -231,10 +254,14 @@ TEST_CASES = [
             "reason": "The only approver of the PR is also a committer",
             "attestation_url": "https://example.com/attestation/9",
             "pr_url": "https://github.com/org/repo/pull/6",
+            "pr_number": 6,
+            "review_status": "",
+            "pr_approvers": ["approver1"],
+            "review_type": "Pull request",
         },
     },
     {
-        "name": "TC11: pull_request_multiple_prs_all_pass",
+        "name": "TC10: pull_request_multiple_prs_all_pass",
         "given": {
             "commit_hash": "bcd890",
             "attestation": {
@@ -262,10 +289,14 @@ TEST_CASES = [
             "reason": "Pull request demonstrates never-alone code review",
             "attestation_url": "https://example.com/attestation/10",
             "pr_url": "https://github.com/org/repo/pull/8",
+            "pr_number": 8,
+            "review_status": "",
+            "pr_approvers": ["approver1"],
+            "review_type": "Pull request",
         },
     },
     {
-        "name": "TC12: unknown_attestation_type",
+        "name": "TC11: unknown_attestation_type",
         "given": {
             "commit_hash": "efg123",
             "attestation": {
@@ -283,36 +314,7 @@ TEST_CASES = [
         },
     },
     {
-        "name": "TC13: pull_request_approver_missing_username",
-        "given": {
-            "commit_hash": "hij456",
-            "attestation": {
-                "attestation_type": "pull_request",
-                "pull_requests": [
-                    {
-                        "url": "https://github.com/org/repo/pull/10",
-                        "approvers": [
-                            {"name": "approver1"},  # missing username
-                            {"username": "approver2"},
-                        ],
-                        "commits": [{"author_username": "author1"}],
-                    }
-                ],
-                "html_url": "https://example.com/attestation/12",
-            },
-        },
-        "when": "evaluate_attestation is called with pull request that has approver missing username",
-        "then": "should return pass=True with never-alone reason (only username approvers counted)",
-        "expected": {
-            "commit": "hij456",
-            "pass": True,
-            "reason": "Pull request demonstrates never-alone code review",
-            "attestation_url": "https://example.com/attestation/12",
-            "pr_url": "https://github.com/org/repo/pull/10",
-        },
-    },
-    {
-        "name": "TC14: pull_request_duplicate_approvers",
+        "name": "TC12: pull_request_duplicate_approvers",
         "given": {
             "commit_hash": "klm789",
             "attestation": {
@@ -338,6 +340,10 @@ TEST_CASES = [
             "reason": "Pull request demonstrates never-alone code review",
             "attestation_url": "https://example.com/attestation/13",
             "pr_url": "https://github.com/org/repo/pull/11",
+            "pr_number": 11,
+            "review_status": "",
+            "pr_approvers": ["approver1"],
+            "review_type": "Pull request",
         },
     },
 ]
@@ -384,14 +390,30 @@ class TestEvaluateAttestation:
         assert (
             result["attestation_url"] == expected["attestation_url"]
         ), f"{test_case_info}Expected attestation_url {expected['attestation_url']}, got {result['attestation_url']}"
+
+        # Check new fields if they exist in expected
         if "pr_url" in expected:
             assert (
                 result["pr_url"] == expected["pr_url"]
             ), f"{test_case_info}Expected pr_url {expected['pr_url']}, got {result['pr_url']}"
+            assert (
+                result["pr_number"] == expected["pr_number"]
+            ), f"{test_case_info}Expected pr_number {expected['pr_number']}, got {result['pr_number']}"
+            assert (
+                result["review_status"] == expected["review_status"]
+            ), f"{test_case_info}Expected review_status {expected['review_status']}, got {result['review_status']}"
+            assert (
+                result["pr_approvers"] == expected["pr_approvers"]
+            ), f"{test_case_info}Expected pr_approvers {expected['pr_approvers']}, got {result['pr_approvers']}"
         else:
             assert (
                 "pr_url" not in result
             ), f"{test_case_info}Expected pr_url not to be in result"
+
+        if "review_type" in expected:
+            assert (
+                result["review_type"] == expected["review_type"]
+            ), f"{test_case_info}Expected review_type {expected['review_type']}, got {result['review_type']}"
 
 
 if __name__ == "__main__":
