@@ -1,33 +1,65 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "array",
-    "items": {
-      "type": "object",
-      "required": ["commit", "pass", "reason", "attestation_url"],
-      "properties": {
-        "commit": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{40}$"
-        },
-        "pass": {
-          "type": "boolean"
-        },
-        "reason": {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "commit",
+      "pass",
+      "reason",
+      "attestation_url"
+    ],
+    "properties": {
+      "commit": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{40}$"
+      },
+      "pass": {
+        "type": "boolean"
+      },
+      "reason": {
+        "type": "string"
+      },
+      "attestation_url": {
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uri"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "pr_url": {
+        "type": "string",
+        "format": "uri"
+      },
+      "pr_number": {
+        "type": "integer"
+      },
+      "review_status": {
+        "type": "string"
+      },
+      "pr_approvers": {
+        "type": "array",
+        "items": {
           "type": "string"
-        },
-        "attestation_url": {
-          "oneOf": [
-            {
-              "type": "string",
-              "format": "uri"
-            },
-            {
-              "type": "null"
-            }
-          ]
         }
       },
-      "additionalProperties": true
-    }
+      "review_type": {
+        "type": "string"
+      },
+      "commit_author": {
+        "type": "string"
+      },
+      "commit_message": {
+        "type": "string"
+      },
+      "commit_timestamp": {
+        "type": "number"
+      }
+    },
+    "additionalProperties": true
   }
-  
+}
