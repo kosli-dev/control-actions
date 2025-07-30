@@ -19,18 +19,6 @@ def get_commit_list(base_ref: str, release_ref: str) -> List[str]:
         List of commit SHAs
     """
     try:
-        # Check if we are on a detached HEAD
-        # result = subprocess.run(
-        #     ["git", "symbolic-ref", "--quiet", "HEAD"],
-        #     capture_output=True,
-        #     text=True,
-        #     check=False,
-        # )
-
-        # if result.returncode != 0:
-        #     print("Error: Currently on a detached HEAD", file=sys.stderr)
-        #     sys.exit(1)
-
         # Check if the base ref exists
         result = subprocess.run(
             ["git", "rev-parse", "--verify", base_ref],
@@ -124,16 +112,18 @@ def evaluate_attestation(commit_hash, attestation):
         result["pr_url"] = pr_url
         result["pr_number"] = pr_url.split('/')[-1]
         result["review_status"] = pull_requests[0].get("state", "")
-        result["pr_author"] = pull_requests[0].get("author", "")
         result["pr_approvers"] = [approver["username"] for approver in pull_requests[0].get("approvers", [])]
+        result["review_type"] = "Pull request"
 
     git_commit_info = attestation.get("git_commit_info", "")
     if git_commit_info and git_commit_info["sha1"] == commit_hash:
+        result["commit_author"] = git_commit_info.get("author", "")
         result["commit_message"] = git_commit_info.get("message", "")
         result["commit_timestamp"] = git_commit_info.get("timestamp", "")
     elif pr_url:
         for commit in pull_requests[0].get("commits", []):
             if commit.get("sha1") == commit_hash:
+                result["commit_author"] = commit.get("author", "")
                 result["commit_message"] = commit.get("message", "")
                 result["commit_timestamp"] = commit.get("timestamp", "")
                 break  # stop after finding the match
@@ -345,23 +335,23 @@ def main():
     print(json.dumps(output, indent=2))
 
     # Report the code review attestations
-    # try:
-    #     response = report_code_review_attestation(
-    #         args.kosli_host_name,
-    #         args.kosli_org,
-    #         args.kosli_code_review_flow_name,
-    #         args.kosli_code_review_trail_name,
-    #         args.kosli_code_review_attestation_type,
-    #         args.kosli_code_review_attestation_name,
-    #         args.kosli_api_token,
-    #         output,
-    #         "attestations_evidence.json",
-    #     )
-    #     print("Code review attestations reported successfully")
-    #     print(json.dumps(response, indent=2))
-    # except Exception as e:
-    #     print(f"Error reporting code review attestations: {e}", file=sys.stderr)
-    #     sys.exit(1)
+    try:
+        response = report_code_review_attestation(
+            args.kosli_host_name,
+            args.kosli_org,
+            args.kosli_code_review_flow_name,
+            args.kosli_code_review_trail_name,
+            args.kosli_code_review_attestation_type,
+            args.kosli_code_review_attestation_name,
+            args.kosli_api_token,
+            output,
+            "attestations_evidence.json",
+        )
+        print("Code review attestations reported successfully")
+        print(json.dumps(response, indent=2))
+    except Exception as e:
+        print(f"Error reporting code review attestations: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
