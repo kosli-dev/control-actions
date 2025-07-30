@@ -106,14 +106,21 @@ def evaluate_attestation(commit_hash, attestation):
         "pass": False,
         "reason": "",
         "attestation_url": attestation.get("html_url", ""),
+        "review_type": "Pull request",
     }
     pr_url = pull_requests[0].get("url", "") if pull_requests else ""
     if pr_url:
         result["pr_url"] = pr_url
-        result["pr_number"] = int(pr_url.split('/')[-1])
+        result["pr_number"] = int(pr_url.split("/")[-1])
         result["review_status"] = pull_requests[0].get("state", "")
-        result["pr_approvers"] = [approver["username"] for approver in pull_requests[0].get("approvers", [])]
-        result["review_type"] = "Pull request"
+        result["pr_approvers"] = sorted(
+            list(
+                {
+                    approver["username"].strip()
+                    for approver in pull_requests[0].get("approvers", [])
+                }
+            )
+        )
 
     git_commit_info = attestation.get("git_commit_info", "")
     if git_commit_info and git_commit_info["sha1"] == commit_hash:
@@ -128,11 +135,11 @@ def evaluate_attestation(commit_hash, attestation):
                 result["commit_timestamp"] = commit.get("timestamp", "")
                 break  # stop after finding the match
 
-
     att_type = attestation.get("attestation_type")
     is_compliant = attestation.get("is_compliant", False)
 
     if att_type == "override":
+        result["review_type"] = "Override"
         if is_compliant:
             result["pass"] = True
             result["reason"] = "Overridden as compliant"
@@ -255,7 +262,9 @@ def report_code_review_attestation(
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Error making API request: {e}", file=sys.stderr)
-        print(f"Response: {response.text}", file=sys.stderr)
+        # Only try to access response.text if response exists
+        if "response" in locals():
+            print(f"Response: {response.text}", file=sys.stderr)
         sys.exit(1)
     finally:
         # Ensure the file is closed

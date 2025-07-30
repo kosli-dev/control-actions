@@ -1,2 +1,14 @@
 .idea/
 .vscode/
+
+# Python virtual environments
+venv/
+**/venv/
+
+# Python cache directories
+__pycache__/
+**/__pycache__/
+
+# Pytest cache
+.pytest_cache/
+**/.pytest_cache/
