@@ -262,7 +262,9 @@ def report_code_review_attestation(
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Error making API request: {e}", file=sys.stderr)
-        print(f"Response: {response.text}", file=sys.stderr)
+        # Only try to access response.text if response exists
+        if "response" in locals():
+            print(f"Response: {response.text}", file=sys.stderr)
         sys.exit(1)
     finally:
         # Ensure the file is closed

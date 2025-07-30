@@ -1,6 +1,13 @@
 import pytest
-from unittest.mock import patch
-from main import evaluate_attestation, evaluate_all, get_commit_list
+from unittest.mock import patch, Mock, mock_open
+from main import (
+    evaluate_attestation,
+    evaluate_all,
+    get_commit_list,
+    make_attestations_request,
+    report_code_review_attestation,
+)
+import requests
 
 
 def get_test_case_name(test_case):
@@ -629,7 +636,11 @@ class TestGetCommitList:
 
     @patch("main.subprocess.run")
     def test_get_commit_list_success(self, mock_run):
-        """Test successful retrieval of commit list between two refs."""
+        """
+        Given: A base ref and HEAD ref that exist in the repository
+        When: get_commit_list is called with valid refs
+        Then: Should return a list of commit hashes between the refs
+        """
         # Mock the first call (git rev-parse) - base ref exists
         mock_run.return_value.returncode = 0
 
@@ -656,7 +667,11 @@ class TestGetCommitList:
 
     @patch("main.subprocess.run")
     def test_get_commit_list_base_ref_not_found(self, mock_run):
-        """Test when base ref doesn't exist."""
+        """
+        Given: A base ref that doesn't exist in the repository
+        When: get_commit_list is called with invalid base ref
+        Then: Should exit with error code 1
+        """
         # Mock the first call (git rev-parse) - base ref doesn't exist
         mock_run.return_value.returncode = 1
         mock_run.return_value.stderr = "fatal: ambiguous argument 'v1.0.0': unknown revision or path not in working tree."
@@ -673,7 +688,11 @@ class TestGetCommitList:
 
     @patch("main.subprocess.run")
     def test_get_commit_list_empty_result(self, mock_run):
-        """Test when no commits are found between refs."""
+        """
+        Given: Valid refs but no commits between them
+        When: get_commit_list is called with refs that have no commits between them
+        Then: Should return an empty list
+        """
         # Mock the first call (git rev-parse) - base ref exists
         mock_run.return_value.returncode = 0
 
@@ -688,7 +707,11 @@ class TestGetCommitList:
 
     @patch("main.subprocess.run")
     def test_get_commit_list_with_whitespace(self, mock_run):
-        """Test handling of whitespace in git log output."""
+        """
+        Given: Git log output with whitespace around commit hashes
+        When: get_commit_list is called and git returns hashes with whitespace
+        Then: Should return cleaned commit hashes without whitespace
+        """
         # Mock the first call (git rev-parse) - base ref exists
         mock_run.return_value.returncode = 0
 
@@ -704,7 +727,11 @@ class TestGetCommitList:
 
     @patch("main.subprocess.run")
     def test_get_commit_list_single_commit(self, mock_run):
-        """Test when only one commit is found."""
+        """
+        Given: Valid refs with only one commit between them
+        When: get_commit_list is called with refs that have one commit between them
+        Then: Should return a list with the single commit hash
+        """
         # Mock the first call (git rev-parse) - base ref exists
         mock_run.return_value.returncode = 0
 
@@ -716,6 +743,618 @@ class TestGetCommitList:
 
         # Should return single commit
         assert result == ["abc123"]
+
+
+class TestMakeAttestationsRequest:
+    """Test cases for the make_attestations_request function."""
+
+    @patch("main.requests.get")
+    def test_make_attestations_request_success_with_flow_name(self, mock_get):
+        """
+        Given: Valid API parameters including flow_name and commit list
+        When: make_attestations_request is called with flow_name parameter
+        Then: Should return attestations data and make correct API call
+        """
+        # Mock successful response
+        mock_response = Mock()
+        mock_response.json.return_value = {"attestations": {"abc123": []}}
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
+        # Call the function
+        result = make_attestations_request(
+            host="https://app.kosli.com",
+            org="test-org",
+            flow_name="test-flow",
+            commit_list=["abc123", "def456"],
+            api_token="test-token",
+            attestation_type="pull_request",
+        )
+
+        # Verify the result
+        assert result == {"attestations": {"abc123": []}}
+
+        # Verify the request was made correctly
+        mock_get.assert_called_once()
+        call_args = mock_get.call_args
+
+        # Check URL
+        assert (
+            call_args[0][0]
+            == "https://app.kosli.com/api/v2/attestations/test-org/list_attestations_for_criteria"
+        )
+
+        # Check parameters
+        expected_params = {
+            "attestation_type": "pull_request",
+            "flow_name": "test-flow",
+            "commit_list": ["abc123", "def456"],
+        }
+        assert call_args[1]["params"] == expected_params
+
+        # Check headers
+        expected_headers = {
+            "accept": "application/json",
+            "Authorization": "Bearer test-token",
+        }
+        assert call_args[1]["headers"] == expected_headers
+
+    @patch("main.requests.get")
+    def test_make_attestations_request_success_without_flow_name(self, mock_get):
+        """
+        Given: Valid API parameters without flow_name
+        When: make_attestations_request is called without flow_name parameter
+        Then: Should return attestations data and make API call without flow_name in params
+        """
+        # Mock successful response
+        mock_response = Mock()
+        mock_response.json.return_value = {"attestations": {"abc123": []}}
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
+        # Call the function
+        result = make_attestations_request(
+            host="https://app.kosli.com",
+            org="test-org",
+            flow_name=None,
+            commit_list=["abc123"],
+            api_token="test-token",
+            attestation_type="override",
+        )
+
+        # Verify the result
+        assert result == {"attestations": {"abc123": []}}
+
+        # Verify the request was made correctly
+        mock_get.assert_called_once()
+        call_args = mock_get.call_args
+
+        # Check parameters (should not include flow_name)
+        expected_params = {"attestation_type": "override", "commit_list": ["abc123"]}
+        assert call_args[1]["params"] == expected_params
+
+    @patch("main.requests.get")
+    def test_make_attestations_request_http_error(self, mock_get):
+        """
+        Given: API request that returns HTTP error
+        When: make_attestations_request is called and server returns HTTP error
+        Then: Should exit with error code 1
+        """
+        # Mock HTTP error response
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "404 Not Found"
+        )
+        mock_get.return_value = mock_response
+
+        # Should exit with error
+        with pytest.raises(SystemExit) as exc_info:
+            make_attestations_request(
+                host="https://app.kosli.com",
+                org="test-org",
+                flow_name="test-flow",
+                commit_list=["abc123"],
+                api_token="test-token",
+            )
+
+        assert exc_info.value.code == 1
+
+    @patch("main.requests.get")
+    def test_make_attestations_request_connection_error(self, mock_get):
+        """
+        Given: Network connection failure
+        When: make_attestations_request is called and connection fails
+        Then: Should exit with error code 1
+        """
+        # Mock connection error
+        mock_get.side_effect = requests.exceptions.ConnectionError("Connection failed")
+
+        # Should exit with error
+        with pytest.raises(SystemExit) as exc_info:
+            make_attestations_request(
+                host="https://app.kosli.com",
+                org="test-org",
+                flow_name="test-flow",
+                commit_list=["abc123"],
+                api_token="test-token",
+            )
+
+        assert exc_info.value.code == 1
+
+    @patch("main.requests.get")
+    def test_make_attestations_request_timeout_error(self, mock_get):
+        """
+        Given: API request that times out
+        When: make_attestations_request is called and request times out
+        Then: Should exit with error code 1
+        """
+        # Mock timeout error
+        mock_get.side_effect = requests.exceptions.Timeout("Request timed out")
+
+        # Should exit with error
+        with pytest.raises(SystemExit) as exc_info:
+            make_attestations_request(
+                host="https://app.kosli.com",
+                org="test-org",
+                flow_name="test-flow",
+                commit_list=["abc123"],
+                api_token="test-token",
+            )
+
+        assert exc_info.value.code == 1
+
+    @patch("main.requests.get")
+    def test_make_attestations_request_empty_commit_list(self, mock_get):
+        """
+        Given: Empty commit list parameter
+        When: make_attestations_request is called with empty commit list
+        Then: Should make API call with empty commit_list parameter and return result
+        """
+        # Mock successful response
+        mock_response = Mock()
+        mock_response.json.return_value = {"attestations": {}}
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
+        # Call the function
+        result = make_attestations_request(
+            host="https://app.kosli.com",
+            org="test-org",
+            flow_name="test-flow",
+            commit_list=[],
+            api_token="test-token",
+        )
+
+        # Verify the result
+        assert result == {"attestations": {}}
+
+        # Verify parameters include empty commit_list
+        call_args = mock_get.call_args
+        expected_params = {
+            "attestation_type": "pull_request",
+            "flow_name": "test-flow",
+            "commit_list": [],
+        }
+        assert call_args[1]["params"] == expected_params
+
+    @patch("main.requests.get")
+    def test_make_attestations_request_custom_attestation_type(self, mock_get):
+        """
+        Given: Custom attestation type parameter
+        When: make_attestations_request is called with custom attestation type
+        Then: Should make API call with custom attestation_type parameter
+        """
+        # Mock successful response
+        mock_response = Mock()
+        mock_response.json.return_value = {"attestations": {"abc123": []}}
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
+        # Call the function
+        result = make_attestations_request(
+            host="https://app.kosli.com",
+            org="test-org",
+            flow_name="test-flow",
+            commit_list=["abc123"],
+            api_token="test-token",
+            attestation_type="custom_type",
+        )
+
+        # Verify the result
+        assert result == {"attestations": {"abc123": []}}
+
+        # Verify custom attestation type is used
+        call_args = mock_get.call_args
+        expected_params = {
+            "attestation_type": "custom_type",
+            "flow_name": "test-flow",
+            "commit_list": ["abc123"],
+        }
+        assert call_args[1]["params"] == expected_params
+
+    @patch("main.requests.get")
+    def test_make_attestations_request_complex_response(self, mock_get):
+        """
+        Given: Complex API response with multiple attestations
+        When: make_attestations_request is called and returns complex data
+        Then: Should return the complex response data correctly
+        """
+        # Mock complex response
+        complex_response = {
+            "attestations": {
+                "abc123": [
+                    {
+                        "attestation_type": "pull_request",
+                        "html_url": "https://example.com/attestation/1",
+                        "pull_requests": [
+                            {
+                                "url": "https://github.com/org/repo/pull/1",
+                                "approvers": [{"username": "approver1"}],
+                                "commits": [{"author_username": "author1"}],
+                            }
+                        ],
+                    }
+                ],
+                "def456": [],
+            }
+        }
+        mock_response = Mock()
+        mock_response.json.return_value = complex_response
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
+        # Call the function
+        result = make_attestations_request(
+            host="https://app.kosli.com",
+            org="test-org",
+            flow_name="test-flow",
+            commit_list=["abc123", "def456"],
+            api_token="test-token",
+        )
+
+        # Verify the complex result is returned correctly
+        assert result == complex_response
+        assert "abc123" in result["attestations"]
+        assert "def456" in result["attestations"]
+        assert len(result["attestations"]["abc123"]) == 1
+        assert len(result["attestations"]["def456"]) == 0
+
+
+class TestReportCodeReviewAttestation:
+    """Test cases for the report_code_review_attestation function."""
+
+    @patch("builtins.open", new_callable=mock_open, read_data="test file content")
+    @patch("main.requests.post")
+    def test_report_code_review_attestation_success(self, mock_post, mock_file):
+        """
+        Given: Valid attestation data and evidence file
+        When: report_code_review_attestation is called with valid parameters
+        Then: Should successfully post attestation data and return response
+        """
+        # Mock successful response
+        mock_response = Mock()
+        mock_response.json.return_value = {"status": "success", "id": "attestation-123"}
+        mock_response.raise_for_status.return_value = None
+        mock_post.return_value = mock_response
+
+        # Test data
+        custom_attestation_data = [
+            {
+                "commit": "abc123",
+                "pass": True,
+                "reason": "Pull request demonstrates never-alone code review",
+                "attestation_url": "https://example.com/attestation/1",
+            }
+        ]
+
+        # Call the function
+        result = report_code_review_attestation(
+            host="https://app.kosli.com",
+            org="test-org",
+            flow_name="test-flow",
+            trail_name="test-trail",
+            attestation_type="code_review",
+            attestation_name="test-attestation",
+            api_token="test-token",
+            custom_attestation_data=custom_attestation_data,
+            evidence_file="test_evidence.json",
+        )
+
+        # Verify the result
+        assert result == {"status": "success", "id": "attestation-123"}
+
+        # Verify the request was made correctly
+        mock_post.assert_called_once()
+        call_args = mock_post.call_args
+
+        # Check URL
+        expected_url = "https://app.kosli.com/api/v2/attestations/test-org/test-flow/trail/test-trail/custom"
+        assert call_args[0][0] == expected_url
+
+        # Check headers
+        expected_headers = {"Authorization": "Bearer test-token"}
+        assert call_args[1]["headers"] == expected_headers
+
+        # Check files parameter
+        files = call_args[1]["files"]
+        assert "data_json" in files
+        assert "attachment_file" in files
+
+        # Check data_json content
+        data_json = files["data_json"]
+        assert data_json[0] is None  # filename is None
+        assert data_json[2] == "application/json"  # content type
+
+        # Parse the JSON data to verify content
+        import json
+
+        json_data = json.loads(data_json[1])
+        assert json_data["type_name"] == "code_review"
+        assert json_data["attestation_name"] == "test-attestation"
+        assert json_data["attestation_data"] == custom_attestation_data
+
+        # Check attachment_file
+        attachment_file = files["attachment_file"]
+        assert attachment_file[0] == "test_evidence.json"
+        assert attachment_file[2] == "application/json"
+
+    @patch("builtins.open", new_callable=mock_open, read_data="test file content")
+    @patch("main.requests.post")
+    def test_report_code_review_attestation_http_error(self, mock_post, mock_file):
+        """
+        Given: API request that returns HTTP error
+        When: report_code_review_attestation is called and server returns HTTP error
+        Then: Should exit with error code 1
+        """
+        # Mock HTTP error response
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "400 Bad Request"
+        )
+        mock_response.text = "Bad request error"
+        mock_post.return_value = mock_response
+
+        # Should exit with error
+        with pytest.raises(SystemExit) as exc_info:
+            report_code_review_attestation(
+                host="https://app.kosli.com",
+                org="test-org",
+                flow_name="test-flow",
+                trail_name="test-trail",
+                attestation_type="code_review",
+                attestation_name="test-attestation",
+                api_token="test-token",
+                custom_attestation_data=[],
+                evidence_file="test_evidence.json",
+            )
+
+        assert exc_info.value.code == 1
+
+    @patch("builtins.open", new_callable=mock_open, read_data="test file content")
+    @patch("main.requests.post")
+    def test_report_code_review_attestation_connection_error(
+        self, mock_post, mock_file
+    ):
+        """
+        Given: Network connection failure
+        When: report_code_review_attestation is called and connection fails
+        Then: Should exit with error code 1
+        """
+        # Mock connection error
+        mock_post.side_effect = requests.exceptions.ConnectionError("Connection failed")
+
+        # Should exit with error
+        with pytest.raises(SystemExit) as exc_info:
+            report_code_review_attestation(
+                host="https://app.kosli.com",
+                org="test-org",
+                flow_name="test-flow",
+                trail_name="test-trail",
+                attestation_type="code_review",
+                attestation_name="test-attestation",
+                api_token="test-token",
+                custom_attestation_data=[],
+                evidence_file="test_evidence.json",
+            )
+
+        assert exc_info.value.code == 1
+
+    @patch("builtins.open", new_callable=mock_open, read_data="test file content")
+    @patch("main.requests.post")
+    def test_report_code_review_attestation_timeout_error(self, mock_post, mock_file):
+        """
+        Given: API request that times out
+        When: report_code_review_attestation is called and request times out
+        Then: Should exit with error code 1
+        """
+        # Mock timeout error
+        mock_post.side_effect = requests.exceptions.Timeout("Request timed out")
+
+        # Should exit with error
+        with pytest.raises(SystemExit) as exc_info:
+            report_code_review_attestation(
+                host="https://app.kosli.com",
+                org="test-org",
+                flow_name="test-flow",
+                trail_name="test-trail",
+                attestation_type="code_review",
+                attestation_name="test-attestation",
+                api_token="test-token",
+                custom_attestation_data=[],
+                evidence_file="test_evidence.json",
+            )
+
+        assert exc_info.value.code == 1
+
+    @patch("builtins.open", new_callable=mock_open, read_data="test file content")
+    @patch("main.requests.post")
+    def test_report_code_review_attestation_empty_data(self, mock_post, mock_file):
+        """
+        Given: Empty attestation data list
+        When: report_code_review_attestation is called with empty data
+        Then: Should successfully post empty attestation data
+        """
+        # Mock successful response
+        mock_response = Mock()
+        mock_response.json.return_value = {"status": "success"}
+        mock_response.raise_for_status.return_value = None
+        mock_post.return_value = mock_response
+
+        # Call the function with empty data
+        result = report_code_review_attestation(
+            host="https://app.kosli.com",
+            org="test-org",
+            flow_name="test-flow",
+            trail_name="test-trail",
+            attestation_type="code_review",
+            attestation_name="test-attestation",
+            api_token="test-token",
+            custom_attestation_data=[],
+            evidence_file="test_evidence.json",
+        )
+
+        # Verify the result
+        assert result == {"status": "success"}
+
+        # Verify the JSON data contains empty list
+        call_args = mock_post.call_args
+        files = call_args[1]["files"]
+        data_json = files["data_json"]
+
+        import json
+
+        json_data = json.loads(data_json[1])
+        assert json_data["attestation_data"] == []
+
+    @patch("builtins.open", new_callable=mock_open, read_data="test file content")
+    @patch("main.requests.post")
+    def test_report_code_review_attestation_complex_data(self, mock_post, mock_file):
+        """
+        Given: Complex attestation data with multiple fields
+        When: report_code_review_attestation is called with complex data
+        Then: Should successfully serialize and post complex attestation data
+        """
+        # Mock successful response
+        mock_response = Mock()
+        mock_response.json.return_value = {"status": "success"}
+        mock_response.raise_for_status.return_value = None
+        mock_post.return_value = mock_response
+
+        # Complex test data
+        complex_data = [
+            {
+                "commit": "abc123",
+                "pass": True,
+                "reason": "Pull request demonstrates never-alone code review",
+                "attestation_url": "https://example.com/attestation/1",
+                "pr_url": "https://github.com/org/repo/pull/1",
+                "pr_number": 1,
+                "review_status": "approved",
+                "pr_approvers": ["approver1", "approver2"],
+                "review_type": "Pull request",
+            },
+            {
+                "commit": "def456",
+                "pass": False,
+                "reason": "No attestations found",
+                "attestation_url": None,
+            },
+        ]
+
+        # Call the function
+        result = report_code_review_attestation(
+            host="https://app.kosli.com",
+            org="test-org",
+            flow_name="test-flow",
+            trail_name="test-trail",
+            attestation_type="custom_review",
+            attestation_name="complex-attestation",
+            api_token="test-token",
+            custom_attestation_data=complex_data,
+            evidence_file="complex_evidence.json",
+        )
+
+        # Verify the result
+        assert result == {"status": "success"}
+
+        # Verify the complex data is correctly serialized
+        call_args = mock_post.call_args
+        files = call_args[1]["files"]
+        data_json = files["data_json"]
+
+        import json
+
+        json_data = json.loads(data_json[1])
+        assert json_data["type_name"] == "custom_review"
+        assert json_data["attestation_name"] == "complex-attestation"
+        assert json_data["attestation_data"] == complex_data
+        assert len(json_data["attestation_data"]) == 2
+
+    @patch("builtins.open", new_callable=mock_open, read_data="test file content")
+    @patch("main.requests.post")
+    def test_report_code_review_attestation_file_closure(self, mock_post, mock_file):
+        """
+        Given: Evidence file that needs to be opened and closed
+        When: report_code_review_attestation is called successfully
+        Then: Should properly close the file after the request
+        """
+        # Mock successful response
+        mock_response = Mock()
+        mock_response.json.return_value = {"status": "success"}
+        mock_response.raise_for_status.return_value = None
+        mock_post.return_value = mock_response
+
+        # Call the function
+        result = report_code_review_attestation(
+            host="https://app.kosli.com",
+            org="test-org",
+            flow_name="test-flow",
+            trail_name="test-trail",
+            attestation_type="code_review",
+            attestation_name="test-attestation",
+            api_token="test-token",
+            custom_attestation_data=[],
+            evidence_file="test_evidence.json",
+        )
+
+        # Verify the file was opened and closed
+        mock_file.assert_called_once_with("test_evidence.json", "rb")
+        mock_file().close.assert_called_once()
+
+    @patch("builtins.open", new_callable=mock_open, read_data="test file content")
+    @patch("main.requests.post")
+    def test_report_code_review_attestation_file_closure_on_error(
+        self, mock_post, mock_file
+    ):
+        """
+        Given: Evidence file that needs to be opened and closed
+        When: report_code_review_attestation is called and an error occurs
+        Then: Should still properly close the file despite the error
+        """
+        # Mock error response
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "500 Internal Server Error"
+        )
+        mock_response.text = "Server error"
+        mock_post.return_value = mock_response
+
+        # Should exit with error, but file should still be closed
+        with pytest.raises(SystemExit):
+            report_code_review_attestation(
+                host="https://app.kosli.com",
+                org="test-org",
+                flow_name="test-flow",
+                trail_name="test-trail",
+                attestation_type="code_review",
+                attestation_name="test-attestation",
+                api_token="test-token",
+                custom_attestation_data=[],
+                evidence_file="test_evidence.json",
+            )
+
+        # Verify the file was still closed despite the error
+        mock_file().close.assert_called_once()
 
 
 if __name__ == "__main__":
