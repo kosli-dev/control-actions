@@ -42,4 +42,4 @@ help:
 	@echo "  install-test-deps - Install test requirements"
 	@echo "  run-tests   - Run the test suite"
 	@echo "  clean       - Remove Python cache files"
-	@echo "  help        - Show this help message" 
+	@echo "  help        - Show this help message"
