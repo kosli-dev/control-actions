@@ -28,7 +28,7 @@ The custom attestation type created by this action is required by the code-revie
 
 ```yaml
 - name: Create Code Review Attestation Type
-  uses: ./.github/actions/create-code-review-type
+  uses: kosli-dev/control-actions/create-code-review-type@main
   with:
     kosli_api_token: ${{ secrets.KOSLI_API_TOKEN }}
     kosli_org: your-organization-name
@@ -82,7 +82,7 @@ The action then reports these evaluation results to Kosli as an attestation.
 
 ```yaml
 - name: Evaluate Code Review Control
-  uses: ./.github/actions/code-review
+  uses: kosli-dev/control-actions/code-review@main
   with:
     base_ref: v1.0.0
     release_ref: v1.1.0
@@ -147,7 +147,7 @@ jobs:
           fetch-depth: 0  # Important: fetch all history for git operations
 
       - name: Create Code Review Attestation Type
-        uses: ./.github/actions/create-code-review-type
+        uses: kosli-dev/control-actions/create-code-review-type@main
         with:
           kosli_api_token: ${{ secrets.KOSLI_API_TOKEN }}
           kosli_org: my-organization
@@ -169,7 +169,7 @@ jobs:
           echo "tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
 
       - name: Evaluate Code Review Control
-        uses: ./.github/actions/code-review
+        uses: kosli-dev/control-actions/code-review@main
         with:
           base_ref: ${{ steps.previous-tag.outputs.previous_tag }}
           release_ref: ${{ github.ref_name }}
