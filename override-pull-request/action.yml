@@ -31,6 +31,7 @@ runs:
     - name: Override
       shell: bash
       run: | 
+        OUTPUT_FILE=$(mktemp)
         JSON_PAYLOAD='{"attestation_name": "pull_request", "original_attestation_type": "pull_request", "reason": "${{ inputs.override_reason }}", "new_compliance_status": ${{ inputs.override_compliance }}'
         set +e
         HTTP_CODE=$(curl -X 'POST' \
@@ -38,6 +39,7 @@ runs:
           -H 'accept: application/json' \
           -H 'Content-Type: application/json' \
           -H "Authorization: Bearer ${{ inputs.kosli_api_token }}" \
+          --output "${OUTPUT_FILE}" \
           --data "${JSON_PAYLOAD}" \
           --write-out "%{http_code}" \
           --silent)
