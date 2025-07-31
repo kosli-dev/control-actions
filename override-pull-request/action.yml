@@ -13,6 +13,10 @@ inputs:
   kosli_trail_name:
     description: "The Kosli trail for the pull-request override"
     required: true
+  attestation_name:
+    description: "The name of the pull_request attestation we want to override"
+    required: true
+    default: "pull-request"
   override_reason:
     description: "The reason for the override"
     required: true
@@ -32,7 +36,7 @@ runs:
       shell: bash
       run: | 
         OUTPUT_FILE=$(mktemp)
-        JSON_PAYLOAD='{"attestation_name": "pull-request", "original_attestation_type": "pull_request", "reason": "${{ inputs.override_reason }}", "new_compliance_status": ${{ inputs.override_compliance }}, "annotations": { "Reason": "${{ inputs.override_reason }}" } }'
+        JSON_PAYLOAD='{"attestation_name": "${{ inputs.attestation_name }}", "original_attestation_type": "pull_request", "reason": "${{ inputs.override_reason }}", "new_compliance_status": ${{ inputs.override_compliance }}, "annotations": { "Reason": "${{ inputs.override_reason }}" } }'
         set +e
         HTTP_CODE=$(curl -X 'POST' \
           "${{ inputs.kosli_host_name }}/api/fastapi/attestations/${{ inputs.kosli_org }}/${{ inputs.kosli_flow_name }}/trail/${{ inputs.kosli_trail_name }}/override" \
