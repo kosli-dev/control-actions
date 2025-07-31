@@ -32,11 +32,19 @@ runs:
       shell: bash
       run: | 
         JSON_PAYLOAD='{"attestation_name": "pull_request", "original_attestation_type": "pull_request", "reason": "${{ inputs.override_reason }}", "new_compliance_status": ${{ inputs.override_compliance }}'
-        curl -X 'POST' \
+        set +e
+        HTTP_CODE=$(curl -X 'POST' \
           "${{ inputs.kosli_host_name }}/api/fastapi/attestations/${{ inputs.kosli_org }}/${{ inputs.kosli_flow_name }}/trail/${{ inputs.kosli_trail_name }}/override" \
           -H 'accept: application/json' \
           -H 'Content-Type: application/json' \
           -H "Authorization: Bearer ${{ inputs.kosli_api_token }}" \
           --data "${JSON_PAYLOAD}" \
           --write-out "%{http_code}" \
-          --silent 
+          --silent)
+        set -e
+        echo -n .
+        if [[ ${HTTP_CODE} -lt 200 || ${HTTP_CODE} -gt 299 ]] ; then
+            >&2 cat "${OUTPUT_FILE}"
+            rm "${OUTPUT_FILE}"
+            exit 22
+        fi
