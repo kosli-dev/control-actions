@@ -1,30 +1,30 @@
 .PHONY: test clean
 
+VENV_ACTIVATE := venv/bin/activate
+
 # Default target
 test: setup-venv install-test-deps run-tests
 
 # Check if we're in a virtual environment and create one if not
 setup-venv:
 	@echo "Checking virtual environment..."
-	@if [ -z "$$VIRTUAL_ENV" ]; then \
+	@if [ ! -e "$(VENV_ACTIVATE)" ]; then \
 		echo "No virtual environment detected. Creating one..."; \
 		python3 -m venv venv; \
-		echo "Virtual environment created. Please activate it with: source venv/bin/activate"; \
-		echo "Then run 'make test' again."; \
-		exit 1; \
+		echo "Virtual environment created"; \
 	else \
-		echo "Virtual environment detected: $$VIRTUAL_ENV"; \
+		echo "Virtual environment detected: "$(VENV_ACTIVATE)""; \
 	fi
 
 # Install test requirements
 install-test-deps:
 	@echo "Installing test requirements..."
-	@pip install -r test_requirements.txt
+	@. "$(VENV_ACTIVATE)" && pip install -r test_requirements.txt
 
 # Run the tests
 run-tests:
 	@echo "Running tests..."
-	@python run_tests.py
+	@. "$(VENV_ACTIVATE)" && python run_tests.py
 
 # Clean up generated files
 clean:
