@@ -32,7 +32,7 @@ runs:
       shell: bash
       run: | 
         OUTPUT_FILE=$(mktemp)
-        JSON_PAYLOAD='{"attestation_name": "pull_request", "original_attestation_type": "pull_request", "reason": "${{ inputs.override_reason }}", "new_compliance_status": ${{ inputs.override_compliance }} }'
+        JSON_PAYLOAD='{"attestation_name": "pull-request", "original_attestation_type": "pull_request", "reason": "${{ inputs.override_reason }}", "new_compliance_status": ${{ inputs.override_compliance }} }'
         set +e
         HTTP_CODE=$(curl -X 'POST' \
           "${{ inputs.kosli_host_name }}/api/fastapi/attestations/${{ inputs.kosli_org }}/${{ inputs.kosli_flow_name }}/trail/${{ inputs.kosli_trail_name }}/override" \
