@@ -16,7 +16,6 @@ inputs:
   attestation_name:
     description: "The name of the pull_request attestation we want to override"
     required: true
-    default: "pull-request"
   override_reason:
     description: "The reason for the override"
     required: true
