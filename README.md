@@ -4,10 +4,11 @@ This repository contains GitHub Actions for evaluating code review controls in K
 
 ## Overview
 
-The repository provides two main actions:
+The repository provides three actions:
 
 1. **Create Code Review Attestation Type** - Sets up a custom attestation type for code review evaluations
 2. **Code Review** - Evaluates code review attestations for commits between two git references
+3. **Override Pull Request** - override a missing or non-compliant pull request attestation
 
 
 ## Prerequisites
@@ -28,11 +29,11 @@ The custom attestation type created by this action is required by the code-revie
 
 ```yaml
 - name: Create Code Review Attestation Type
-  uses: kosli-dev/control-actions/create-code-review-type@main
+  uses: kosli-dev/control-actions/create-code-review-type@v1
   with:
     kosli_api_token: ${{ secrets.KOSLI_API_TOKEN }}
     kosli_org: your-organization-name
-    kosli_cli_version: v2.11.19
+    kosli_cli_version: v2.11.20
     kosli_host_name: https://app.kosli.com  # Optional, defaults to https://app.kosli.com
 ```
 
@@ -59,8 +60,8 @@ The custom attestation type created by this action is required by the code-revie
 
 ## Prerequisites
 
-1. **Git History**: The repository must have sufficient git history to compare releases
-2. **Pull Request Attestations**: Your development flow should have pull request attestations for commits
+1. **Git History**: The repository must have sufficient git history to compare releases (set `fetch-depth: 0` in `actions/checkout`)
+2. **Pull Request Attestations**: Your development flow should have pull request attestations for each commit on the main branch
 3. **Custom Attestation Type**: The code review attestation type must be created before running evaluations
 
 
@@ -68,11 +69,11 @@ The custom attestation type created by this action is required by the code-revie
 
 The action evaluates each commit in your release (between the base reference and the current release reference) to determine if it meets the code review requirements. A commit passes the review control if:
 
-1. **The commit has an associated pull-request attestation with an associated pull request** - This means the code was reviewed through a pull request process
+1. **The commit has an associated pull-request attestation with an associated pull request or has an override** - This means the code was reviewed through a pull request process, Or,
+   the commit has an override attestation associated with it which marks a manual approval/exemption.
 2. **The pull request meets the review criteria** - The pull request is considered passing if:
    - It has at least two different reviewers, OR
-   - It has at least one reviewer who is not the same person who made the commit, OR
-   - The pull-request attestation has been explicitly marked as compliant (overridden)
+   - It has at least one reviewer who is not a committer in the branch being merged
 
 If every commit in your release passes these criteria, the overall evaluation is marked as **passed**. If any commit fails to meet the requirements, the evaluation is marked as **failed**.
 
@@ -82,7 +83,7 @@ The action then reports these evaluation results to Kosli as an attestation.
 
 ```yaml
 - name: Evaluate Code Review Control
-  uses: kosli-dev/control-actions/code-review@main
+  uses: kosli-dev/control-actions/code-review@v1
   with:
     base_ref: v1.0.0
     release_ref: v1.1.0
@@ -181,6 +182,48 @@ jobs:
           kosli_code_review_flow_name: releases
           kosli_code_review_trail_name: ${{ github.ref_name }}
 ```
+
+### 2. Override Pull Request attestation
+
+This action allows you to override a specific `pull_request` attestation to mark it as compliant.
+
+#### Usage
+
+```yaml
+- name: Override pull request attestation
+  uses: kosli-dev/control-actions/override-pull-request@v1
+  with:
+    kosli_api_token: ${{ secrets.KOSLI_API_TOKEN }}
+    kosli_org: your-organization-name
+    kosli_flow_name: build_flow
+    kosli_trail_name: 5b33764ac5d08a7945afd792476dd139afadc376
+    attestation_name: pull-request
+    override_reason: "looks good to me!"
+    override_compliance: true
+    kosli_host_name: https://app.kosli.com  # Optional, defaults to https://app.kosli.com
+```
+
+#### Inputs
+
+| Input | Description | Required | Default |
+|-------|-------------|----------|---------|
+| `kosli_api_token` | The Kosli API token for authorization | Yes | - |
+| `kosli_org` | The Kosli organization | Yes | - |
+| `kosli_flow_name` | The Kosli flow for the pull-request override | Yes | - |
+| `kosli_trail_name` | The Kosli trail for the pull-request override | Yes | - |
+| `attestation_name` | The name of the pull_request attestation we want to override | Yes | - |
+| `override_reason` | The reason for the override | Yes | - |
+| `override_compliance` | Compliance value for override | Yes | - |
+| `kosli_host_name` | The Kosli host name | No | `https://app.kosli.com` |
+
+#### What it does
+
+- It creates a new `override` attestation in the specified flow and trail for the attestation_name provided.
+- The override attestation causes a new compliance calculation of the trail to consider the override effect.
+
+#### Next steps
+
+After overriding missing/non-compliant individual pull_request attestations, you need to re-attest the code-review attestation (e.g. re-run the code-review workflow) to produce an updated code-review attestation that takes the overrides into account.
 
 
 ## Troubleshooting
